@@ -1,7 +1,6 @@
-from kubernetes import client, config, watch
-from kubernetes.client import V1CephFSVolumeSource, V1LocalObjectReference
+from kubernetes import client, config
 
-config.load_kube_config(config_file='config')
+config.load_kube_config(config_file='k8s/config')
 configuration = client.Configuration()
 
 core_v1_api = client.CoreV1Api(client.ApiClient(configuration))
@@ -30,7 +29,6 @@ def create_job(name, configmap_name, container_name, container_image,
     try:
         # Body是对象体
         body = client.V1Job(api_version="batch/v1", kind="Job")
-
         # 对象需要 Metadata,每个JOB必须有一个不同的名称!
         body.metadata = client.V1ObjectMeta(namespace=namespace, name=name)
         # 添加 Status
@@ -59,8 +57,7 @@ def create_job(name, configmap_name, container_name, container_image,
 
         template.spec = client.V1PodSpec(containers=[container],
                                          restart_policy='OnFailure',
-                                         volumes=[volumes],
-                                         node_selector={'gpu': 'true'})
+                                         volumes=[volumes])
 
         # 最后，创建V1JobSpec
         body.spec = client.V1JobSpec(ttl_seconds_after_finished=600,
@@ -72,7 +69,7 @@ def create_job(name, configmap_name, container_name, container_image,
         return True, response
     except Exception as ex:
         print(ex)
-        return False, "k8s Job Object creates Failed!"
+        return False, "k8 Job Object creates Failed!"
 
 
 def create_cron_job(name, configmap_name, init_container_name,
@@ -104,7 +101,7 @@ def create_cron_job(name, configmap_name, init_container_name,
         volume_mount = client.V1VolumeMount(name="share-volume",
                                             mount_path=mount_path)
         container.volume_mounts = [volume_mount]
-        container.args = [mount_path + '']
+        container.args = [mount_path+'']
 
         init_container = client.V1Container(command=init_container_command,
                                             image=init_container_image,
@@ -121,19 +118,12 @@ def create_cron_job(name, configmap_name, init_container_name,
         config_map_volume = client.V1Volume(name="config-volume",
                                             config_map=config_map)
 
-        vlor = V1LocalObjectReference(name='ceph-secret')
-        cephfs = V1CephFSVolumeSource(
-            monitors=['192.168.4.21:6789', '192.168.4.22:6789',
-                      '192.168.4.29:6789'], user='admin', secret_ref=vlor,
-            path='/k8svolume/ai-algo')
-        config_map_volume_1 = client.V1Volume(name='demo-path', cephfs=cephfs)
-        config_map_volume.template.spec = client.V1PodSpec(
-            active_deadline_seconds=600,
-            containers=[container],
-            restart_policy='OnFailure',
-            volumes=[config_map_volume,
-                     share_volume, config_map_volume_1],
-            init_containers=[init_container])
+        template.spec = client.V1PodSpec(active_deadline_seconds=600,
+                                         containers=[container],
+                                         restart_policy='OnFailure',
+                                         volumes=[config_map_volume,
+                                                  share_volume],
+                                         init_containers=[init_container])
 
         job_template = client.V1beta1JobTemplateSpec()
         job_template.spec = client.V1JobSpec(template=template)
@@ -182,93 +172,34 @@ def create_configmap(config_map):
         return False
 
 
-def delete_cron_job():
-    batch_v1_beta1_api.delete_namespaced_cron_job()
-
-
-def watch_k8s():
-    try:
-        config.load_kube_config(config_file='config')
-
-        batch_v1 = client.BatchV1Api()
-
-        batch_w = watch.Watch()
-        for event in batch_w.stream(batch_v1.list_namespaced_job,
-                                    namespace='default'):
-            # print(event)
-            print(
-                "Event: %s %s" % (event['type'], event['object'].metadata.name))
-            if event['type'] != "DELETED":
-                data = batch_v1.read_namespaced_job_status(
-                    name=event['object'].metadata.name, namespace='default')
-                print("status=%s" % data.status)
-
-    except Exception as ex:
-        print(ex)
-    finally:
-        batch_w.stop()
-
-    # try:
-    #     config.load_kube_config(config_file='config')
-    #
-    #     core_v1 = client.CoreV1Api()
-    #     core_w = watch.Watch()
-    #     for event in core_w.stream(core_v1.list_namespaced_pod,
-    #                                namespace='default'):
-    #         # print(event)
-    #         print(
-    #             "Event: %s %s" % (event['type'], event['object'].metadata.name))
-    #         try:
-    #             if event['type'] != "DELETED":
-    #                 data = core_v1.read_namespaced_pod_status(
-    #                     name=event['object'].metadata.name, namespace='default')
-    #                 print("status=%s" % data.status.container_statuses)
-    #         except Exception as exception:
-    #             print(exception)
-    #             pass
-    #
-    # except Exception as ex:
-    #     print(ex)
-    # finally:
-    #     core_w.stop()
-
-class Test:
-    def output(self):
-        print("test")
-
-
-class Test1(Test):
-    def output(self):
-        print("test1")
-
-class Test2(Test):
-    def output(self):
-        print("test2")
-
-
 if __name__ == '__main__':
+    # data = {'path.json': "{'test':1}"}
+    # config_map = {"namespace": "default", "name": "config-map-python-zyh",
+    #               "data": data}
+    # if create_configmap(config_map):
+    #     create_job(name="kube-job-zyh", configmap_name="config-map-python-zyh",
+    #                container_name="kube-job-zyh",
+    #                container_image="job-test:v0.1",
+    #                container_command=['python3', '/usr/src/app/test.py'],
+    #                namespace="default", env_vars={})
+    # data = {'path.json': "{'test':1}"}
+    # config_map = {"namespace": "default", "name": "config-map-python-zyh",
+    #               "data": data}
+    # if create_configmap(config_map):
 
-    test1 = Test1()
-    test2 = Test2()
-    test1.output()
-    test2.output()
-    # result = kube_create_job_object(name='kube-job',
-    #                                 container_image="job-test:v0.1",
-    #                                 container_name="kube-job")
+    create_cron_job(name="cron-job-zyh", namespace="default",
+                    schedule="*/1 * * * *",#1分钟执行一次，这个格式是cron，可以去网上看下
+                    configmap_name="config-map-python-zyh",#上一步创建的configmap名
+                    init_container_name="",
+                    init_container_image="",#查询镜像
+                    init_container_command=['curl', 'http://192.168.4.32/searchArea'],#调用查询镜像
+                    container_name="cron-job-zyh",
+                    container_image="job-test:v0.1",#算法镜像
+                    container_command=['python3', '/usr/src/app/test.py'],#运行算法
+                    env_vars={})
 
-    # config.load_kube_config(config_file='config')
-    #
-    # configuration = kubernetes.client.Configuration()
-    #
-    # # api_instance = kubernetes.client.BatchV1Api(
-    # #     kubernetes.client.ApiClient(configuration))
-    #
-    # # api_response = api_instance.create_namespaced_job("default", result,
-    # #                                                   pretty=True)
-    #
-    # api_instance = kubernetes.client.CoreV1Api(
-    #     kubernetes.client.ApiClient(configuration))
-    # body = kube_create_configmap_object(name="config-map-python-1")
-    # api_response_config_map = api_instance.create_namespaced_config_map(
-    #     namespace='default', body=body, pretty=True)
-    # print(api_response_config_map)
+    # create_job(name="kube-job-zyh3", configmap_name="config-map-python-zyh",
+    #            container_name="kube-job-zyh",
+    #            container_image="job-test:v0.2",
+    #            container_command=['python3', '/usr/src/app/test.py'],
+    #            namespace="default", env_vars={})
