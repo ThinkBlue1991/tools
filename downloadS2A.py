@@ -37,7 +37,7 @@ def download_from_url(uuid_array, zip_name):
 
 
 if __name__ == "__main__":
-    download_from_url("asd", "123")
+    download_from_url(["asd",2000000000], "123")
 # from threading import Thread
 # threads = list()
 # for i in range(0,4):
