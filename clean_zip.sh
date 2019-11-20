@@ -29,7 +29,7 @@ cleanZip(){
         for zip in $(seq 0 `expr $len - 2`)
         do
             rm -rf  ${fileList[$zip]}
-            echo ${fileList[$zip]} > ./clean_log
+            echo ${fileList[$zip]} >> ./clean_log
         done
     fi
 }

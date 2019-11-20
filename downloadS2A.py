@@ -4,11 +4,11 @@ import os
 import datetime
 
 
-def download_from_url(uuid_array,count):
+def download_from_url(uuid_array, zip_name):
     uuid = uuid_array[0]
     file_size = uuid_array[1]
-    url = "https://scihub.copernicus.eu/dhus/odata/v1/Products('" + uuid +"')/$value"
-    dst = "./" + uuid + '{0}'.format(count) +".zip"
+    url = "https://scihub.copernicus.eu/dhus/odata/v1/Products('" + uuid + "')/$value"
+    dst = "./" + zip_name + ".zip"
     # print(url)
     # header = {'Authorization': 'Basic eWMwMDczMzM6eWMwMDcwMDk='}
     # response = requests.get(url,headers=header, stream=True) #(1)
@@ -21,9 +21,9 @@ def download_from_url(uuid_array,count):
     if first_byte >= file_size:  # (4)
         return file_size
     header = {'Range': 'bytes={first_byte}-{file_size}', 'Authorization':
-'Basic eWMwMDczMzM6eWMwMDcwMDk='}
+        'Basic eWMwMDczMzM6eWMwMDcwMDk='}
     pbar = tqdm(total=file_size, initial=first_byte, unit='B', unit_scale=True,
-desc=dst)
+                desc=dst)
     req = requests.get(url, headers=header, stream=True)
     # (5)
     # print("1")
@@ -37,24 +37,25 @@ desc=dst)
     return file_size
 
 
-
 if __name__ == "__main__":
-    #from threading import Thread
-    #threads = list()
-    #for i in range(0,4):
-    #    t = Thread(target=download_from_url,args=(i,))
-    #    t.start()
-    #    threads.append(t)
-    #for t in threads: 
-    count = 0
-    with open('./log','w+') as f:
-        while True:
-            start = datetime.datetime.now()
-            result = download_from_url(["fde76892-08f7-4fb0-b935-e5419ab10d35",1200000000], count)
-            end = datetime.datetime.now()
-            total_time = end - start
-            time_str = "{0}\t{1}\t{2}\t{3}\n".format(count,start,end,total_time)
-            f.write(time_str)
-            f.flush()
-            count += 1
+# from threading import Thread
+# threads = list()
+# for i in range(0,4):
+#    t = Thread(target=download_from_url,args=(i,))
+#    t.start()
+#    threads.append(t)
+# for t in threads:
+#    count = 0
+#    with open('./log','w+') as f:
+#        while True:
+#            start = datetime.datetime.now()
+#            result = download_from_url(["ba81ef24-d9d4-4171-abe8-a281df441d5b",1200000000], count)
+#            end = datetime.datetime.now()
+#            total_time = end - start
+#            time_str = "{0}\t{1}\t{2}\t{3}\n".format(count,start,end,total_time)
+#            f.write(time_str)
+#            f.flush()
+#            count += 1
+#
+
 
