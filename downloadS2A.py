@@ -1,7 +1,6 @@
 import requests
 from tqdm import tqdm
 import os
-import datetime
 
 
 def download_from_url(uuid_array, zip_name):
@@ -38,6 +37,7 @@ def download_from_url(uuid_array, zip_name):
 
 
 if __name__ == "__main__":
+    download_from_url("asd", "123")
 # from threading import Thread
 # threads = list()
 # for i in range(0,4):
